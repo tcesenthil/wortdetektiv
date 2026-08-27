@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Wortdetektiv</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#131A38; --board:#1C2447; --board2:#232C55;
+  --paper:#FBF7EE; --paperEdge:#E4DCC9;
+  --amber:#FFC94D; --stamp:#E23E4E; --teal:#5FD3C2;
+  --muted:#8C97C4; --line:rgba(255,255,255,.13);
+  --disp:'Anton','Haettenschweiler','Arial Narrow',Impact,sans-serif;
+  --body:'Space Grotesk','Trebuchet MS',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{
+  background:
+    radial-gradient(120% 80% at 50% -10%, #26305C 0%, transparent 60%),
+    repeating-linear-gradient(0deg, transparent 0 26px, rgba(255,255,255,.022) 26px 27px),
+    var(--ink);
+  color:var(--paper); font-family:var(--body);
+  display:flex; flex-direction:column;
+  height:100dvh; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px;transition:none}
+
+/* ---------- shell ---------- */
+header{
+  flex:0 0 auto;display:flex;align-items:center;gap:10px;
+  padding:10px clamp(12px,4vw,22px) 8px;border-bottom:1px solid var(--line);
+}
+.mark{font-family:var(--disp);font-size:clamp(17px,4.6vw,24px);letter-spacing:.055em;line-height:1}
+.mark span{color:var(--amber)}
+.save{
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
+  padding:4px 7px;border-radius:5px;white-space:nowrap;border:1.5px solid currentColor
+}
+.save.ok{color:#7BE3A8}
+.save.bad{color:#FF9BA6}
+.sich{
+  flex:0 0 auto;border-top:1px solid var(--line);padding-top:clamp(8px,2.4vw,12px);
+  display:flex;flex-direction:column;gap:7px
+}
+.sichrow{display:flex;gap:7px;align-items:center}
+.code{
+  flex:1;min-height:44px;display:flex;align-items:center;padding:0 12px;border-radius:9px;
+  background:rgba(255,255,255,.06);border:1px solid var(--line);
+  font-family:ui-monospace,Menlo,monospace;font-size:13px;letter-spacing:.04em;
+  color:var(--paper);overflow:hidden;white-space:nowrap;text-overflow:ellipsis
+}
+.mini{min-height:44px;padding:0 13px;border-radius:9px;border:1px solid var(--line);
+  background:var(--board2);font-size:12px;font-weight:700;letter-spacing:.05em;white-space:nowrap}
+.counter{
+  margin-left:auto;font-size:clamp(10px,2.8vw,12px);letter-spacing:.14em;
+  color:var(--muted);font-variant-numeric:tabular-nums;text-transform:uppercase;white-space:nowrap
+}
+nav{flex:0 0 auto;display:flex;gap:6px;padding:8px clamp(12px,4vw,22px) 0}
+.tab{
+  flex:1;min-height:46px;border:1px solid var(--line);border-bottom:none;
+  border-radius:9px 9px 0 0;background:rgba(255,255,255,.03);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  padding:5px 2px;color:var(--muted)
+}
+.tab b{
+  font-size:clamp(10px,2.9vw,12px);letter-spacing:.11em;text-transform:uppercase;
+  font-weight:700;line-height:1.1
+}
+.tab i{
+  font-style:normal;font-size:clamp(8px,2.1vw,10px);letter-spacing:.03em;
+  opacity:.62;line-height:1.1;white-space:nowrap
+}
+.tab[aria-selected="true"] i{opacity:.85}
+.tab[aria-selected="true"]{background:var(--board2);color:var(--paper);border-color:var(--amber);box-shadow:inset 0 3px 0 var(--amber)}
+main{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding:0 clamp(12px,4vw,22px) clamp(10px,3vw,18px)}
+.view{flex:1 1 auto;min-height:0;display:none;flex-direction:column}
+.view.on{display:flex}
+
+/* ---------- the case file ---------- */
+.file{
+  flex:1 1 auto;min-height:0;position:relative;display:flex;flex-direction:column;
+  background:var(--paper);color:#20242E;border-radius:4px 14px 4px 4px;
+  border-top:5px solid var(--amber);
+  box-shadow:0 18px 40px rgba(0,0,0,.45), 0 0 0 1px var(--paperEdge) inset;
+  padding:clamp(12px,3.4vw,20px);overflow:hidden
+}
+.file::after{ /* punched holes, the folder tell */
+  content:"";position:absolute;left:0;top:0;bottom:0;width:16px;
+  background:radial-gradient(circle at 8px 22%, var(--ink) 4px, transparent 4.5px),
+             radial-gradient(circle at 8px 78%, var(--ink) 4px, transparent 4.5px);
+  opacity:.16;pointer-events:none
+}
+.filetop{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding-left:14px}
+.chip{
+  font-size:11px;letter-spacing:.12em;font-weight:700;text-transform:uppercase;
+  padding:4px 8px;border-radius:4px;border:1.5px solid currentColor
+}
+.chip.de{color:#8A5A00;background:#FFEFC6}
+.chip.fr{color:#0B6155;background:#D3F4EE}
+.casenum{margin-left:auto;font-size:11px;letter-spacing:.14em;color:#8B8778;font-variant-numeric:tabular-nums}
+
+.word{
+  font-family:var(--disp);line-height:1.03;letter-spacing:.005em;
+  font-size:clamp(30px,11.5vw,68px);
+  padding:clamp(6px,2.2vw,14px) 0 3px 14px;
+  overflow-wrap:anywhere;hyphens:auto;flex:0 0 auto
+}
+.mean{padding-left:14px;font-size:clamp(13px,3.7vw,17px);color:#5C6070;margin-top:6px;flex:0 0 auto}
+
+.evidence{
+  flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center;
+  margin-top:clamp(8px,2.4vw,14px);padding-left:14px
+}
+.sealed{align-items:center;gap:10px;flex:0 0 auto!important;justify-content:flex-end}
+.seal{
+  min-height:56px;padding:0 clamp(16px,5vw,30px);border-radius:999px;
+  background:var(--ink);color:var(--paper);font-weight:700;
+  font-size:clamp(13px,3.6vw,16px);letter-spacing:.09em;text-transform:uppercase;
+  box-shadow:0 6px 0 #05091E;transition:transform .12s
+}
+.seal:active{transform:translateY(4px);box-shadow:0 2px 0 #05091E}
+.sealhint{font-size:clamp(11px,3vw,13px);color:#8B8778;text-align:center;letter-spacing:.03em}
+
+.hook{
+  font-size:clamp(15px,4.5vw,22px);line-height:1.36;font-weight:500;
+  border-left:4px solid var(--amber);padding-left:clamp(10px,3vw,16px)
+}
+.sagen{
+  display:inline-flex;align-items:center;gap:6px;margin-top:12px;
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
+  color:#8A5A00;background:#FFEFC6;border:1.5px dashed #C79A2E;padding:5px 9px;border-radius:5px
+}
+.stamp{
+  position:absolute;right:clamp(6px,3vw,20px);bottom:clamp(52px,14vw,74px);
+  font-family:var(--disp);font-size:clamp(24px,8.5vw,46px);letter-spacing:.06em;
+  color:var(--stamp);border:4px solid var(--stamp);border-radius:7px;padding:2px 12px 4px;
+  transform:rotate(-11deg) scale(1);opacity:.9;pointer-events:none
+}
+/* the ribbon adds a row at the foot: lift the stamp and drop the now-redundant family tag */
+.file.ribboned .stamp{bottom:clamp(104px,27vw,140px)}
+.file.ribboned .familytag{display:none}
+.stamp.thump{animation:thump .34s cubic-bezier(.2,1.5,.4,1)}
+@keyframes thump{0%{transform:rotate(-11deg) scale(2.4);opacity:0}60%{opacity:.95}100%{transform:rotate(-11deg) scale(1);opacity:.9}}
+
+.ribbon{
+  flex:0 0 auto;min-height:44px;margin:clamp(6px,2vw,10px) 0 0 14px;
+  border-radius:9px;background:var(--stamp);color:#fff;font-weight:700;
+  font-size:clamp(11px,3.1vw,14px);letter-spacing:.03em;padding:6px 12px;
+  display:flex;align-items:center;justify-content:center;gap:7px;text-align:center;line-height:1.25
+}
+.filebar{flex:0 0 auto;display:flex;gap:8px;align-items:center;padding-left:14px;margin-top:clamp(8px,2.4vw,14px)}
+.icon{
+  min-width:44px;min-height:44px;border-radius:10px;border:1.5px solid #CFC7B2;
+  display:grid;place-items:center;font-size:18px;background:#F2ECDC;color:#20242E
+}
+.icon:disabled{opacity:.35;cursor:default}
+.more{
+  min-height:44px;padding:0 clamp(12px,3.6vw,18px);border-radius:10px;
+  background:#20242E;color:var(--paper);font-weight:700;
+  font-size:clamp(12px,3.3vw,15px);letter-spacing:.04em;white-space:nowrap
+}
+.more{flex:0 0 auto}
+.more:active{transform:translateY(1px)}
+.familytag{
+  margin-left:auto;max-width:38%;font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--stamp);font-weight:700;text-align:right;line-height:1.3
+}
+
+
+/* ---------- Beweisfoto: the wordless rebus that carries the hook ---------- */
+.photo{
+  flex:1 1 auto;min-height:0;display:flex;align-items:stretch;justify-content:center;
+  margin:clamp(6px,2vw,12px) 0 0 14px;position:relative
+}
+.polaroid{
+  position:relative;background:#fff;border-radius:2px;width:100%;flex:1 1 auto;min-height:0;
+  padding:clamp(14px,4.4vw,24px) clamp(10px,3vw,18px) clamp(24px,6vw,34px);
+  box-shadow:0 12px 26px rgba(20,15,5,.24), 0 0 0 1px rgba(0,0,0,.07);
+  transform:rotate(-1.4deg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center
+}
+.polaroid::before,.polaroid::after{
+  content:"";position:absolute;top:-10px;width:52px;height:21px;
+  background:rgba(255,201,77,.62);border:1px solid rgba(190,140,20,.28);
+  transform:rotate(-6deg)
+}
+.polaroid::before{left:-14px}
+.polaroid::after{right:-14px;transform:rotate(7deg)}
+.rebus{
+  flex:1 1 auto;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;
+  gap:clamp(3px,1.3vw,9px);line-height:1
+}
+.gl{font-size:clamp(34px,12.5vw,74px);line-height:1.14}
+.op{
+  font-size:clamp(17px,5vw,30px);color:#BDB49C;font-weight:700;
+  font-family:var(--body);align-self:center
+}
+.caption{
+  font-size:clamp(8px,2.2vw,10px);letter-spacing:.16em;text-transform:uppercase;
+  color:#ABA394;font-family:var(--body);position:absolute;bottom:clamp(7px,2vw,12px)
+}
+/* opened: the story takes the room, the photo stays legible but steps back */
+.file.open .photo{flex:0 0 auto;align-items:center;margin-top:clamp(4px,1.4vw,8px)}
+.file.open .polaroid{flex:0 0 auto;padding:clamp(10px,2.8vw,15px) clamp(8px,2.4vw,14px)}
+.file.open .gl{font-size:clamp(23px,8vw,42px)}
+.file.open .op{font-size:clamp(11px,3vw,16px)}
+.file.open .caption{display:none}
+.file.open .polaroid::before,.file.open .polaroid::after{top:-7px;width:38px;height:15px}
+
+/* ---------- akten ---------- */
+.dial{flex:0 0 auto;display:flex;align-items:baseline;gap:10px;padding:clamp(10px,3vw,16px) 2px 6px}
+.dialnum{font-family:var(--disp);font-size:clamp(34px,10vw,54px);line-height:1.08;padding-bottom:2px;color:var(--amber)}
+.dialsub{font-size:clamp(11px,3vw,13px);color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.bar{flex:0 0 auto;height:8px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;margin-bottom:clamp(8px,2.4vw,14px)}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--amber),var(--stamp));border-radius:99px}
+.fams{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:clamp(5px,1.6vw,9px);justify-content:space-between}
+.fam{
+  flex:1 1 0;min-height:0;display:flex;align-items:center;gap:10px;
+  background:var(--board);border:1px solid var(--line);border-left:4px solid var(--muted);
+  border-radius:10px;padding:clamp(6px,2vw,12px) clamp(8px,2.6vw,14px);text-align:left;width:100%
+}
+.fam.done{border-left-color:var(--stamp);background:var(--board2)}
+.famtitle{font-size:clamp(12px,3.3vw,15px);font-weight:700;line-height:1.2}
+.famsub{font-size:clamp(10px,2.7vw,12px);color:var(--muted);margin-top:3px;letter-spacing:.04em}
+.pins{margin-left:auto;display:flex;gap:5px;flex-shrink:0}
+.pin{width:13px;height:13px;border-radius:50%;border:2px solid var(--muted);flex:0 0 auto}
+.pin.lit{background:var(--stamp);border-color:var(--stamp)}
+.famdone{margin-left:auto;font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--stamp);flex-shrink:0}
+
+
+/* ---------- archiv ---------- */
+.grid{
+  flex:1 1 auto;min-height:0;display:grid;grid-template-columns:repeat(5,1fr);
+  grid-template-rows:repeat(6,minmax(44px,1fr));gap:clamp(4px,1.6vw,8px)
+}
+.cell{
+  min-height:44px;border-radius:9px;border:1px solid var(--line);
+  background:var(--board);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;padding:2px;overflow:hidden
+}
+.cell.open{background:var(--board2);border-color:rgba(255,201,77,.55)}
+.cell:disabled{opacity:.42;cursor:default}
+.cellg{font-size:clamp(15px,4.6vw,24px);line-height:1}
+.celln{font-size:9px;letter-spacing:.06em;color:var(--muted);font-variant-numeric:tabular-nums}
+.cell.open .celln{color:var(--amber)}
+.cellx{font-size:13px;color:var(--muted);line-height:1}
+.pager{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:14px;padding-top:clamp(6px,2vw,12px)}
+.pbtn{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--board);font-size:20px;line-height:1}
+.pbtn:disabled{opacity:.3;cursor:default}
+.pnum{font-size:12px;letter-spacing:.12em;color:var(--muted);font-variant-numeric:tabular-nums;min-width:60px;text-align:center}
+
+/* ---------- suchen ---------- */
+.searchwrap{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:10px;padding-top:clamp(10px,3vw,16px)}
+.lead{font-size:clamp(12px,3.2vw,14px);color:var(--muted);line-height:1.45}
+.row{display:flex;gap:8px;flex:0 0 auto}
+input[type=text]{
+  flex:1;min-height:50px;border-radius:10px;border:1px solid var(--line);
+  background:rgba(255,255,255,.06);color:var(--paper);padding:0 14px;font:inherit;font-size:16px
+}
+input::placeholder{color:#6C77A6}
+.go{min-height:50px;padding:0 18px;border-radius:10px;background:var(--amber);color:#1A1400;font-weight:700;letter-spacing:.05em}
+.go:disabled{opacity:.4;cursor:default}
+.result{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center}
+.note{font-size:clamp(12px,3.2vw,14px);color:var(--muted);line-height:1.5;text-align:center;padding:0 6px}
+.genwarn{
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
+  color:#1A1400;background:var(--amber);padding:4px 8px;border-radius:5px;align-self:flex-start;margin-top:10px
+}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="mark">WORT<span>DETEKTIV</span></div>
+  <span class="save" id="savechip" hidden>–</span>
+  <div class="counter" id="counter">–</div>
+</header>
+<nav role="tablist" aria-label="Views">
+  <button class="tab" role="tab" id="t-heute" aria-selected="true" aria-controls="v-heute"><b>Heute</b><i>Today</i></button>
+  <button class="tab" role="tab" id="t-akten" aria-selected="false" aria-controls="v-akten"><b>Akten</b><i>Case files</i></button>
+  <button class="tab" role="tab" id="t-archiv" aria-selected="false" aria-controls="v-archiv"><b>Archiv</b><i>Archive</i></button>
+  <button class="tab" role="tab" id="t-suchen" aria-selected="false" aria-controls="v-suchen"><b>Suchen</b><i>Search</i></button>
+</nav>
+<main>
+  <section class="view on" id="v-heute" role="tabpanel" aria-labelledby="t-heute">
+    <article class="file" id="file">
+      <div class="filetop">
+        <span class="chip" id="chip">DE</span>
+        <span class="casenum" id="casenum">AKTE 000</span>
+      </div>
+      <h1 class="word" id="word">—</h1>
+      <p class="mean" id="mean"></p>
+      <div class="photo" id="photo"></div>
+      <div class="evidence sealed" id="evidence">
+        <button class="seal" id="seal">Beweis öffnen</button>
+        <p class="sealhint">One word. One story. That's the whole day.</p>
+      </div>
+      <div class="filebar">
+        <button class="icon" id="say" aria-label="Say the word out loud" hidden>🔊</button>
+        <button class="more" id="more" hidden>Noch eins? →</button>
+        <span class="familytag" id="familytag"></span>
+      </div>
+      <button class="ribbon" id="ribbon" hidden></button>
+    </article>
+  </section>
+
+  <section class="view" id="v-akten" role="tabpanel" aria-labelledby="t-akten" hidden>
+    <div class="dial"><span class="dialnum" id="solvedN">0</span><span class="dialsub" id="solvedLbl">of 95 cases closed</span></div>
+    <div class="bar"><i id="barfill" style="width:0%"></i></div>
+    <div class="fams" id="fams"></div>
+  </section>
+
+  <section class="view" id="v-archiv" role="tabpanel" aria-labelledby="t-archiv" hidden>
+    <p class="lead" id="archLead" style="padding:clamp(8px,2.4vw,14px) 2px 6px"></p>
+    <div class="grid" id="grid"></div>
+    <div class="pager">
+      <button class="pbtn" id="prev" aria-label="Previous page">‹</button>
+      <span class="pnum" id="pnum">1 / 3</span>
+      <button class="pbtn" id="next" aria-label="Next page">›</button>
+    </div>
+  </section>
+
+  <section class="view" id="v-suchen" role="tabpanel" aria-labelledby="t-suchen" hidden>
+    <div class="searchwrap">
+      <p class="lead">Got a word that isn't in the files yet? Type it in. If there's a real story, the Detektiv writes a new card. If there isn't, it says so instead of making one up.</p>
+      <div class="row">
+        <input type="text" id="q" placeholder="e.g. Handschuh" autocomplete="off" spellcheck="false" aria-label="German or French word">
+        <button class="go" id="goBtn">Suchen</button>
+      </div>
+      <div class="result" id="result"><p class="note" id="note">Nothing on the desk yet.</p></div>
+      <div class="sich">
+        <p class="lead" id="sichLead">Backup code — keep this if you ever lose progress.</p>
+        <div class="sichrow">
+          <span class="code" id="code">—</span>
+          <button class="mini" id="copy">Kopieren</button>
+        </div>
+        <div class="sichrow">
+          <input type="text" id="restore" placeholder="Paste a backup code" autocomplete="off" aria-label="Backup code to restore">
+          <button class="mini" id="loadBtn">Laden</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="sr" aria-live="polite" id="live"></div>
+<script>
+const CARDS=[{"w": "der Beruf", "m": "the job", "h": "From rufen, to call. A job is literally a calling — same idea as \"vocation\".", "l": "de", "sagen": false, "c": null, "r": ["📣", ">", "💼"]}, {"w": "der Geburtstag", "m": "the birthday", "h": "Never wish a German happy birthday early. It is genuinely considered bad luck.", "l": "de", "sagen": false, "c": null, "r": ["🎂", "+", "⏰", "=", "❌"]}, {"w": "prost!", "m": "cheers! (drinking)", "h": "Latin prosit, \"may it do good\". Student Latin that escaped the university.", "l": "de", "sagen": false, "c": null, "r": ["🍻", ">", "🏛️"]}, {"w": "anstoßen", "m": "to clink glasses; to launch; to bump", "h": "Clink glasses — and look them in the eye, or the superstition says seven bad years.", "l": "de", "sagen": true, "c": null, "r": ["🍻", "+", "👀"]}, {"w": "doch", "m": "however; after all; but", "h": "The word English does not have: a yes that contradicts a no.", "l": "de", "sagen": false, "c": null, "r": ["❌", ">", "✅", "❗"]}, {"w": "der Urlaub", "m": "the holiday; the vacation", "h": "From erlauben, to permit. A holiday started life as permission to leave.", "l": "de", "sagen": false, "c": null, "r": ["✋", "✅", ">", "🏖️"]}, {"w": "aus der Schweiz", "m": "from Switzerland", "h": "The whole country is named after one canton: Schwyz.", "l": "de", "sagen": false, "c": null, "r": ["🇨🇭", "=", "1️⃣", "🏔️"]}, {"w": "aus Österreich", "m": "from Austria", "h": "Österreich = eastern realm. Latinised, that becomes Austria.", "l": "de", "sagen": false, "c": null, "r": ["👑", "+", "⬅️", "🌅"]}, {"w": "die Hand", "m": "the hand", "h": "Germans call a mobile phone ein Handy. No English speaker has ever said this.", "l": "de", "sagen": false, "c": null, "r": ["✋", "+", "📱", "=", "🇩🇪"]}, {"w": "auf Wiedersehen", "m": "goodbye", "h": "\"Until seeing-again\". French au revoir is built exactly the same way.", "l": "de", "sagen": false, "c": "spiegel", "r": ["👋", "+", "👀", "+", "🔁"]}, {"w": "tschüss", "m": "bye", "h": "Traced back to Spanish adiós, which drifted north through Belgium and Low German.", "l": "de", "sagen": true, "c": null, "r": ["👋", "🇪🇸", ">", "🇧🇪", ">", "🇩🇪"]}, {"w": "die Wurst", "m": "the sausage", "h": "\"Das ist mir Wurst\" = \"that is sausage to me\" = I could not care less.", "l": "de", "sagen": false, "c": null, "r": ["🌭", "=", "🤷"]}, {"w": "das Schweinefleisch", "m": "the pork", "h": "Pig/pork, same 1066 split. German: Schwein + Fleisch. No lord required.", "l": "de", "sagen": false, "c": "fleisch", "r": ["🐷", ">", "👑", ">", "🥓"]}, {"w": "die Karotte", "m": "the carrot", "h": "Greek karoton. Germans more often say Möhre.", "l": "de", "sagen": false, "c": null}, {"w": "das Rindfleisch", "m": "the beef", "h": "Cow vs beef: English kept the Saxon farmer's animal and the Norman lord's dinner. German just glued Rind + Fleisch.", "l": "de", "sagen": false, "c": "fleisch", "r": ["🐄", ">", "👑", ">", "🥩"]}, {"w": "das Hühnchenfleisch", "m": "the chicken (meat)", "h": "Chicken is the one animal English forgot to rename at dinner.", "l": "de", "sagen": false, "c": "fleisch", "r": ["🐔", ">", "👑", ">", "🐔"]}, {"w": "der Rotkohl", "m": "the red cabbage", "h": "Kohl = cabbage = the \"cole\" in coleslaw.", "l": "de", "sagen": false, "c": null, "r": ["🔴", "+", "🥬", "=", "🥗"]}, {"w": "die Kartoffel", "m": "the potato", "h": "Named after truffles, because that is what the first ones looked like. Tartufolo -> Kartoffel.", "l": "de", "sagen": false, "c": null, "r": ["🥔", "?", "🍄"]}, {"w": "das Salz", "m": "the salt", "h": "Roman soldiers were partly paid in salt. That payment was the salarium. That is your salary.", "l": "de", "sagen": false, "c": null, "r": ["🧂", ">", "🪖", ">", "💰"]}, {"w": "die Zwiebel", "m": "the onion", "h": "Latin cepulla. The same word gave English \"chive\".", "l": "de", "sagen": false, "c": null, "r": ["🧅", ">", "🌿"]}, {"w": "der Käse", "m": "the cheese", "h": "Käse and cheese are the same Latin word (caseus) wearing different clothes.", "l": "de", "sagen": false, "c": null, "r": ["🧀", "🇩🇪", "=", "🧀", "🇬🇧"]}, {"w": "der Pfeffer", "m": "the pepper", "h": "Sanskrit pippali. Pepper was worth its weight in silver.", "l": "de", "sagen": false, "c": "handel", "r": ["🇮🇳", ">", "⛵", ">", "🥈"]}, {"w": "die Butter", "m": "the butter", "h": "Greek bou-tyron: \"cow cheese\".", "l": "de", "sagen": false, "c": null, "r": ["🐄", "+", "🧀", "=", "🧈"]}, {"w": "das Mehl", "m": "the flour", "h": "Mehl is the \"meal\" in oatmeal — not the meal you eat.", "l": "de", "sagen": false, "c": null, "r": ["🌾", ">", "🥣", "x", "🍽️"]}, {"w": "die Eier", "m": "the eggs", "h": "English lost its own word for egg to a Viking loanword.", "l": "de", "sagen": false, "c": null, "r": ["🥚", "+", "⚔️", "🛶"]}, {"w": "Wasser", "m": "water", "h": "Wasser/water is the classic ss-to-t swap. Whisky and vodka both mean \"little water\".", "l": "de", "sagen": false, "c": null, "r": ["💧", ">", "🥃"]}, {"w": "das Öl", "m": "the oil", "h": "Latin oleum, from olive. \"Olive oil\" says olive twice.", "l": "de", "sagen": false, "c": null, "r": ["🫒", "=", "🛢️"]}, {"w": "der Fruchtsaft", "m": "the fruit juice", "h": "Saft is the same word as \"sap\".", "l": "de", "sagen": false, "c": "lego", "r": ["🧃", "=", "🌳", "+", "💧"]}, {"w": "die Banane", "m": "the banana", "h": "Reached Europe through Portuguese, from a West African word.", "l": "de", "sagen": true, "c": null, "r": ["🍌", ">", "⛵", "🇵🇹"]}, {"w": "die Zitrone", "m": "the lemon", "h": "Zitrone is lemon. Limone is lime. Get them the wrong way round at your peril.", "l": "de", "sagen": false, "c": null, "r": ["🍋", "x", "🟢"]}, {"w": "die Erdbeere", "m": "the strawberry", "h": "Earth-berry. Nobody has ever satisfactorily explained the \"straw\" in strawberry.", "l": "de", "sagen": false, "c": "lego", "r": ["🌍", "+", "🍓", "?", "🥤", "+", "🍓"]}, {"w": "die Marmelade", "m": "the jam", "h": "From the Portuguese for quince. In German it is any jam; in English it must be orange.", "l": "de", "sagen": false, "c": null, "r": ["🇬🇧", "=", "🍊", "x", "🇩🇪", "=", "🍓🍇🍑"]}, {"w": "orange", "m": "orange (adj.)", "h": "The fruit came first. Before oranges reached England, the colour was called \"yellow-red\".", "l": "de", "sagen": false, "c": null, "r": ["🍊", ">", "🎨"]}, {"w": "die Erdnussbutter", "m": "the peanut butter", "h": "Earth-nut-butter. German builds words like Lego.", "l": "de", "sagen": false, "c": "lego", "r": ["🌍", "+", "🥜", "+", "🧈"]}, {"w": "das Sandwich", "m": "the sandwich", "h": "Named after an English earl who would not leave the card table.", "l": "de", "sagen": false, "c": null, "r": ["🎩", "+", "🃏", "=", "🥪"]}, {"w": "vegetarisch", "m": "vegetarian", "h": "From Latin vegetus, \"lively\" — not from \"vegetable\".", "l": "de", "sagen": true, "c": null, "r": ["🥕", "x", ">", "⚡"]}, {"w": "vegan", "m": "vegan", "h": "Coined in 1944 from the first three and last two letters of \"vegetarian\".", "l": "de", "sagen": false, "c": null, "r": ["🥬", "+", "✂️"]}, {"w": "der Schein", "m": "the bill", "h": "Schein is a banknote and also a gleam. Der Schein trügt: appearances deceive.", "l": "de", "sagen": false, "c": null, "r": ["💵", "=", "✨", "🎭"]}, {"w": "Allergie", "m": "allergy", "h": "Invented in 1906 by a Viennese doctor. Greek for \"other-work\".", "l": "de", "sagen": false, "c": null, "r": ["🤧", "+", "🔬", "+", "🇦🇹"]}, {"w": "guten Appetit!", "m": "enjoy your meal!", "h": "German has one; English had to borrow the French.", "l": "de", "sagen": false, "c": null, "r": ["🍽️", "🇩🇪", "✅", "🇬🇧", ">", "🇫🇷"]}, {"w": "Entschuldigung", "m": "I'm sorry; excuse me", "h": "Schuld = guilt or debt. You are asking to be de-guilted.", "l": "de", "sagen": false, "c": null, "r": ["😔", "+", "⚖️", ">", "🕊️"]}, {"w": "der Junge", "m": "the boy", "h": "Junge/young: same word, and the g-to-y drift is a rule you can reuse.", "l": "de", "sagen": false, "c": null}, {"w": "wo sind die Toiletten?", "m": "where are the toilets?", "h": "Toilette is French for \"little cloth\". Somehow that became the room.", "l": "de", "sagen": false, "c": null, "r": ["🚽", "<", "🧣", "🇫🇷"]}, {"w": "was ist das WLAN-Passwort?", "m": "what's the WI-FI password?", "h": "Germans do not say Wi-Fi. They say VEH-LAHN.", "l": "de", "sagen": false, "c": null, "r": ["📶", ">", "🇩🇪", "🗣️"]}, {"w": "willkommen!", "m": "welcome!", "h": "wil-cuma: the guest you are pleased to have. \"Welcome\" is the same word.", "l": "de", "sagen": false, "c": null, "r": ["🚪", "+", "🧳", "=", "😊"]}, {"w": "der Haarschnitt", "m": "the haircut", "h": "Hair-cut, literally, in that order. German builds it and you can read it.", "l": "de", "sagen": false, "c": "lego", "r": ["🦱", "+", "✂️"]}, {"w": "schade!", "m": "what a shame!", "h": "Same root as \"scathe\" — as in unscathed.", "l": "de", "sagen": false, "c": null, "r": ["😖", "+", "🩹"]}, {"w": "Gesundheit!", "m": "bless you!", "h": "English gave up and borrowed the German word whole.", "l": "de", "sagen": false, "c": "hatschi", "r": ["🤧", ">", "🇩🇪", ">", "🇬🇧"]}, {"w": "der Zucker", "m": "the sugar", "h": "Sugar travelled Sanskrit to Arabic to Italian to German. The word took the same road as the cargo.", "l": "de", "sagen": false, "c": "handel", "r": ["🍬", ">", "🐫", ">", "🇩🇪"]}, {"w": "der Kaffee", "m": "the coffee", "h": "From Arabic qahwa, via Turkish, via Vienna.", "l": "de", "sagen": false, "c": "handel", "r": ["☕", ">", "🐫", ">", "🇦🇹"]}, {"w": "Deutsch", "m": "German (language)", "h": "Deutsch, German, allemand, tedesco, Duits — one country, four names. And \"Dutch\" is the same word.", "l": "de", "sagen": false, "c": null, "r": ["🇩🇪", "=", "🏷️", "🏷️", "🏷️", "🏷️"]}, {"w": "nett", "m": "nice", "h": "From French net, \"clean\". English \"neat\" came from the same place.", "l": "de", "sagen": false, "c": null, "r": ["🧼", ">", "😊"]}, {"w": "lustig", "m": "funny; amusing", "h": "From Lust, which in German just means \"wanting to\" — nothing rude about it.", "l": "de", "sagen": false, "c": null}, {"w": "spielen", "m": "to play; to act", "h": "Spiel escaped into English as a word for a rehearsed sales patter.", "l": "de", "sagen": false, "c": null, "r": ["🎲", ">", "🗣️", "💰"]}, {"w": "Tennis", "m": "tennis", "h": "From the French shout tenez! — \"catch!\" — yelled before the serve.", "l": "de", "sagen": false, "c": null, "r": ["🎾", "+", "📣"]}, {"w": "hallo", "m": "hi", "h": "A shout used to hail a ferryman. The telephone made it a greeting.", "l": "de", "sagen": false, "c": null, "r": ["⛵", "📣", ">", "☎️"]}, {"w": "das Brot", "m": "the bread", "h": "German bread culture is on the UNESCO list. Over 3,000 registered kinds.", "l": "de", "sagen": false, "c": null, "r": ["🍞", "x", "3️⃣0️⃣0️⃣0️⃣"]}, {"w": "der Kellner", "m": "the waiter", "h": "The cellar-man. He went down to fetch the wine, and the name stuck.", "l": "de", "sagen": false, "c": null, "r": ["🤵", ">", "⬇️", ">", "🍷"]}, {"w": "der Tee", "m": "the tea", "h": "Every language on Earth says either \"tea\" or \"cha\" — depending on whether it arrived by ship or by road.", "l": "de", "sagen": false, "c": "handel", "r": ["🍵", ">", "⛵", "+", "🐫"]}, {"w": "glauben", "m": "to think; to believe", "h": "glauben and believe are the same ancient word.", "l": "de", "sagen": false, "c": null, "r": ["💭", "=", "❤️"]}, {"w": "anstrengend", "m": "stressful", "h": "From Strang, a rope. Something anstrengend pulls you tight.", "l": "de", "sagen": true, "c": null, "r": ["🪢", ">", "😮‍💨"]}, {"w": "der Morgen", "m": "the morning", "h": "Capital M = the morning. Small m = tomorrow. English does the same trick with \"morrow\".", "l": "de", "sagen": false, "c": null, "r": ["🅼", "=", "🌅", "x", "🅼", "=", "📅"]}, {"w": "morgen", "m": "tomorrow", "h": "See der Morgen — the one capital letter that changes the day.", "l": "de", "sagen": false, "c": null, "r": ["🅼", "=", "🌅", "x", "🅼", "=", "📅"]}, {"w": "der Espresso", "m": "the espresso", "h": "\"Pressed out\", not \"express\". It was never about speed.", "l": "de", "sagen": false, "c": null, "r": ["☕", "+", "🗜️"]}, {"w": "die Mutter", "m": "the mother", "h": "Mutter is a mother — and also the nut that screws onto a bolt.", "l": "de", "sagen": false, "c": null, "r": ["👩", "+", "🔩"]}, {"w": "salut", "m": "hi", "h": "From Latin salus, health. Same family as salute.", "l": "fr", "sagen": false, "c": null, "r": ["👋", "=", "💪"]}, {"w": "quoi de neuf ?", "m": "what's up?", "h": "neuf is both \"nine\" and \"new\". What's nine? What's new?", "l": "fr", "sagen": false, "c": null, "r": ["9️⃣", "=", "🆕", "❓"]}, {"w": "bonjour", "m": "hello; good morning", "h": "jour comes from Latin diurnum — the same root as journal and journey (a day's travel).", "l": "fr", "sagen": false, "c": null, "r": ["☀️", ">", "📰", "✈️"]}, {"w": "génial !", "m": "great!", "h": "From génie. It does not mean \"genial\".", "l": "fr", "sagen": false, "c": null}, {"w": "au revoir", "m": "goodbye", "h": "\"To the re-seeing\" — the exact same construction as auf Wiedersehen.", "l": "fr", "sagen": false, "c": "spiegel", "r": ["👋", "+", "👀", "+", "🔁"]}, {"w": "merci", "m": "thank you", "h": "From Latin merces, \"payment\". The same root gives mercy and commerce.", "l": "fr", "sagen": false, "c": null, "r": ["🙏", ">", "💰"]}, {"w": "de rien", "m": "you're welcome", "h": "\"Of nothing\" — the same shrug as Spanish de nada.", "l": "fr", "sagen": false, "c": null, "r": ["🤷", "+", "0️⃣"]}, {"w": "s'il te plaît", "m": "please (informal)", "h": "\"If it pleases you\". English shortened the same phrase down to \"please\".", "l": "fr", "sagen": false, "c": null, "r": ["❓", "😊", ">", "🙏"]}, {"w": "je suis désolé", "m": "I'm sorry (said by a man)", "h": "Désolé is \"desolate\". For a bumped elbow, this is dramatic.", "l": "fr", "sagen": false, "c": null, "r": ["🤏", "🩹", ">", "🌋", "😱"]}, {"w": "poli; polie", "m": "polite (masc.; fem.)", "h": "Polite = polished. Same idea in English, and nobody notices.", "l": "fr", "sagen": false, "c": null, "r": ["🥾", "✨", ">", "🙇"]}, {"w": "grossier; grossière", "m": "rude (masc.; fem.)", "h": "From gros, big and coarse. English took it as \"gross\".", "l": "fr", "sagen": false, "c": null, "r": ["🤢", "+", "📏"]}, {"w": "à tes souhaits !", "m": "bless you! (singular)", "h": "French wishes you wishes, German wishes you health, English blesses you. One sneeze, three theories.", "l": "fr", "sagen": false, "c": "hatschi", "r": ["🤧", "🇫🇷", "⭐", "🇩🇪", "💪", "🇬🇧", "🙏"]}, {"w": "enchanté; enchantée", "m": "nice to meet you", "h": "Literally \"bewitched\". You are telling a stranger they have enchanted you.", "l": "fr", "sagen": false, "c": null, "r": ["🤝", "+", "🪄", "✨"]}, {"w": "personne", "m": "no one; person", "h": "Means \"person\" and also \"nobody\". Same word, opposite jobs.", "l": "fr", "sagen": false, "c": null, "r": ["🧍", "=", "🚫", "🧍"]}, {"w": "adorer", "m": "to adore; to love", "h": "ad + orare, \"to pray to\". The French use it for crisps.", "l": "fr", "sagen": false, "c": null, "r": ["🙏", ">", "🍟"]}, {"w": "voilà", "m": "here you go", "h": "vois + là = \"see there\". English borrowed it and never gave it back.", "l": "fr", "sagen": false, "c": null, "r": ["👀", "+", "👉"]}, {"w": "t'inquiète pas", "m": "don't worry (casual)", "h": "The \"ne\" has been dropped. Real spoken French does this constantly.", "l": "fr", "sagen": false, "c": null, "r": ["🚫", "🅽🅴", ">", "😎"]}, {"w": "j'ai faim", "m": "I'm hungry", "h": "French has hunger. German has hunger. English decided to BE hungry. English is the odd one.", "l": "fr", "sagen": false, "c": "spiegel", "r": ["🇫🇷", "🤲", "🍽️", "x", "🇬🇧", "🧍", "🍽️"]}, {"w": "j'ai soif", "m": "I'm thirsty", "h": "Same trick as j'ai faim: you have thirst, you are not thirsty.", "l": "fr", "sagen": false, "c": "spiegel", "r": ["🤲", "+", "💧"]}, {"w": "maintenant", "m": "now", "h": "main + tenant: \"holding in hand\". Now is what you are holding.", "l": "fr", "sagen": false, "c": null, "r": ["✋", "+", "⏱️"]}, {"w": "il fait chaud", "m": "it's hot (weather; temperature)", "h": "French MAKES hot, German IS hot, English IS hot. French is the odd one here.", "l": "fr", "sagen": false, "c": null, "r": ["🇫🇷", "🔨", "🔥", "x", "🇩🇪", "=", "🔥"]}, {"w": "où sont les toilettes ?", "m": "where are the toilets?", "h": "The German word is borrowed from this one. Same little cloth.", "l": "fr", "sagen": false, "c": null, "r": ["🚽", "🇫🇷", ">", "🇩🇪"]}, {"w": "c'est la vie !", "m": "that's life!", "h": "English gave up translating this one and just uses the French.", "l": "fr", "sagen": false, "c": null, "r": ["🤷", "🇫🇷", ">", "🇬🇧"]}, {"w": "j'ai un chat", "m": "I have a cat", "h": "chat and cat are the same word, worn down differently.", "l": "fr", "sagen": false, "c": null, "r": ["🐈", "=", "🐱"]}, {"w": "tu as un chien ?", "m": "do you have a dog?", "h": "chien from Latin canis — the canine in your house.", "l": "fr", "sagen": false, "c": null, "r": ["🐕", "=", "🐺"]}, {"w": "un animal de compagnie", "m": "a pet", "h": "Compagnie = com + panis = \"with bread\". A companion is someone you share bread with.", "l": "fr", "sagen": false, "c": null, "r": ["🐕", "+", "🍞", "=", "🤝"]}, {"w": "parler", "m": "to speak; to talk", "h": "From parabola, a parable. To speak is to toss a story. Parliament = a talking-place.", "l": "fr", "sagen": false, "c": null, "r": ["🗣️", ">", "📖", ">", "🏛️"]}, {"w": "à l'université", "m": "at university", "h": "From universitas, \"the whole of it\".", "l": "fr", "sagen": false, "c": null, "r": ["🎓", "=", "🌍"]}, {"w": "un ami; une amie", "m": "a friend (masc.; fem.)", "h": "amicus, the root of amiable and amicable — and of Spanish amigo.", "l": "fr", "sagen": false, "c": null, "r": ["🤝", "🇫🇷", "🇪🇸"]}, {"w": "je fais les courses", "m": "I'm doing the groceries", "h": "courses = running. Doing the shopping is doing the running.", "l": "fr", "sagen": false, "c": null, "r": ["🏃", ">", "🛒"]}];
+const CLUSTERS={"fleisch": {"t": "Die Fleisch-Akte", "x": "1066: England got two words for every animal — the Saxon farmer's and the Norman lord's. Cow/beef. Pig/pork. Sheep/mutton. German never split them: it just glued the animal to the meat. English is a Germanic language wearing a French coat.", "m": ["das Rindfleisch", "das Schweinefleisch", "das Hühnchenfleisch"]}, "handel": {"t": "Die Handels-Akte", "x": "Four words, four journeys. Tea came by sea from Fujian and by road from Beijing — which is why half the world says \"tea\" and half says \"cha\". Sugar, coffee and pepper each rode the same trade winds. The word always travels with the cargo.", "m": ["der Tee", "der Zucker", "der Kaffee", "der Pfeffer"]}, "hatschi": {"t": "Die Hatschi-Akte", "x": "One sneeze, three completely different reactions. German wishes you HEALTH. French wishes your WISHES come true. English asks God to BLESS you. Nobody agrees, and everybody does it anyway.", "m": ["Gesundheit!", "à tes souhaits !"]}, "spiegel": {"t": "Die Spiegel-Akte", "x": "German and French are not two piles of words — they are the same jobs done in two accents. auf Wiedersehen and au revoir are the same sentence, built twice. And when it comes to hunger, French and German agree with each other and English is the odd one out.", "m": ["auf Wiedersehen", "au revoir", "j'ai faim", "j'ai soif"]}, "lego": {"t": "Die Lego-Akte", "x": "German does not invent new words. It clicks old ones together and expects you to read left to right. Erd + nuss + butter. Haar + schnitt. Once you see it, you can decode words nobody ever taught you.", "m": ["die Erdnussbutter", "der Haarschnitt", "der Fruchtsaft", "die Erdbeere"]}};
+/* ---------- deterministic shuffle: same order on every device, no storage needed ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rnd=mulberry32(20260821);
+const order=CARDS.map((c,i)=>i);
+for(let i=order.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[order[i],order[j]]=[order[j],order[i]]}
+
+const EPOCH=Date.UTC(2026,7,21);
+function dayIndex(){
+  const n=new Date(); const today=Date.UTC(n.getFullYear(),n.getMonth(),n.getDate());
+  return Math.max(0,Math.round((today-EPOCH)/86400000));
+}
+const dueCard=()=>CARDS[order[dayIndex()%CARDS.length]];
+function nextUnsolved(){
+  const due=dueCard();
+  if(!state.solved.includes(due.w)) return due;
+  const start=dayIndex()%CARDS.length;
+  for(let i=1;i<=CARDS.length;i++){
+    const c=CARDS[order[(start+i)%CARDS.length]];
+    if(!state.solved.includes(c.w)) return c;
+  }
+  return null; // every case closed
+}
+
+/* ---------- storage (degrades to memory) ---------- */
+// NEVER change this key. A new key = she starts from zero on the next republish.
+const KEY='wortdetektiv:v1';
+let storageOK=null;
+let state={solved:[],gen:{}};
+let memOnly=false;
+async function load(){
+  try{const r=await window.storage.get(KEY); if(r&&r.value){const p=JSON.parse(r.value); state={solved:p.solved||[],gen:p.gen||{}}}}
+  catch(e){/* first run, or storage unavailable - the probe below decides which */}
+}
+// write a value and read it back: the only honest test of whether saving works here
+async function probe(){
+  try{
+    const t='wortdetektiv:probe';
+    await window.storage.set(t,String(Date.now()));
+    const r=await window.storage.get(t);
+    storageOK=!!(r&&r.value);
+  }catch(e){ storageOK=false; memOnly=true }
+  paintSave();
+}
+function paintSave(){
+  const c=$('savechip'); c.hidden=false;
+  c.className='save '+(storageOK?'ok':'bad');
+  c.textContent=storageOK?'\u2713 Gesichert':'\u26a0 Nicht gesichert';
+  c.title=storageOK?'Progress is being saved to your account.':'Progress is NOT saving on this device. Use the backup code in Suchen.';
+  const l=$('sichLead');
+  if(l) l.textContent=storageOK
+    ? 'Saving works here. This backup code is your spare key \u2014 copy it somewhere safe.'
+    : 'Saving is NOT working on this device. Copy this code before you close the tab, and paste it back next time.';
+}
+async function save(){
+  paintCode();
+  if(memOnly){ storageOK=false; paintSave(); return }
+  try{ await window.storage.set(KEY,JSON.stringify(state)); storageOK=true }
+  catch(e){ memOnly=true; storageOK=false }
+  paintSave();
+}
+
+/* ---------- backup code: 95 solved flags packed into a short string ---------- */
+function makeCode(){
+  const bits=new Uint8Array(Math.ceil(CARDS.length/8));
+  CARDS.forEach((c,i)=>{ if(state.solved.includes(c.w)) bits[i>>3]|=1<<(i&7) });
+  return 'WD1-'+btoa(String.fromCharCode(...bits)).replace(/=+$/,'');
+}
+function readCode(txt){
+  const m=String(txt||'').trim().replace(/^WD1-/,'');
+  if(!m) return null;
+  try{
+    const raw=atob(m); const out=[];
+    CARDS.forEach((c,i)=>{ if(raw.charCodeAt(i>>3)&(1<<(i&7))) out.push(c.w) });
+    return out;
+  }catch(e){ return null }
+}
+function paintCode(){ const e=$('code'); if(e) e.textContent=makeCode() }
+
+/* ---------- speech, feature-detected ---------- */
+let voices=[];
+function pickVoice(lang){return voices.find(v=>v.lang&&v.lang.toLowerCase().startsWith(lang))||null}
+function refreshVoices(){
+  if(!('speechSynthesis' in window))return;
+  voices=window.speechSynthesis.getVoices()||[];
+  const c=currentCard; if(!c)return;
+  const v=pickVoice(c.l);
+  const b=document.getElementById('say');
+  if(v){b.hidden=false;b.setAttribute('aria-label','Say '+c.w+' out loud')}else{b.hidden=true}
+}
+if('speechSynthesis' in window){window.speechSynthesis.onvoiceschanged=refreshVoices}
+
+function speak(card){
+  if(!('speechSynthesis' in window))return;
+  const v=pickVoice(card.l); if(!v)return;
+  const clean=card.w.replace(/^(der|die|das|le|la|les|un|une)\s+/i,'');
+  const u=new SpeechSynthesisUtterance(clean);
+  u.voice=v; u.lang=v.lang; u.rate=.82;
+  window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+}
+
+/* ---------- render ---------- */
+let currentCard=null, opened=false;
+const $=id=>document.getElementById(id);
+
+function renderCard(card,opts){
+  opts=opts||{};
+  currentCard=card; opened=!!opts.open;
+  const chip=$('chip');
+  chip.textContent=card.l==='de'?'DE · Deutsch':'FR · Français';
+  chip.className='chip '+card.l;
+  $('casenum').textContent=opts.generated?'NEUE AKTE':'AKTE '+String((CARDS.indexOf(card)+1)||0).padStart(3,'0');
+  const w=$('word'); w.textContent=card.w; w.setAttribute('lang',card.l);
+  $('mean').textContent=card.m;
+  const fam=card.c?CLUSTERS[card.c]:null;
+  $('familytag').textContent=fam?('Part of '+fam.t):'';
+  const ev=$('evidence');
+  const old=document.querySelector('.stamp'); if(old) old.remove();
+  $('ribbon').hidden=true; $('file').classList.remove('ribboned');
+  paintPhoto(card,opts);
+  $('file').classList.toggle('open',!!opened);
+
+  if(!opened){
+    ev.className='evidence sealed';
+    ev.innerHTML='<button class="seal" id="seal">Beweis öffnen</button><p class="sealhint">Look at the photo first. What do you reckon happened?</p>';
+    $('seal').onclick=()=>openEvidence(card,opts);
+  }else{
+    paintHook(card,opts);
+  }
+  refreshVoices();
+  $('say').onclick=()=>speak(card);
+  paintMore();
+}
+
+const OPS={'+':'+','>':'\u2192','x':'\u2716','=':'=','?':'?','<':'\u2190'};
+function paintPhoto(card,opts){
+  const host=$('photo');
+  host.innerHTML='';
+  if(!card.r||!card.r.length){host.style.display='none';return}
+  host.style.display='';
+  const pol=document.createElement('div'); pol.className='polaroid';
+  const row=document.createElement('div'); row.className='rebus';
+  card.r.forEach(tok=>{
+    const e=document.createElement('span');
+    if(OPS[tok]){e.className='op';e.textContent=OPS[tok]}
+    else{e.className='gl';e.textContent=tok}
+    row.appendChild(e);
+  });
+  pol.appendChild(row);
+  const cap=document.createElement('span'); cap.className='caption';
+  cap.textContent=(opts&&opts.generated)?'Beweisfoto':'Beweisfoto Nr. '+String((CARDS.indexOf(card)+1)||0).padStart(3,'0');
+  pol.appendChild(cap);
+  pol.setAttribute('role','img');
+  pol.setAttribute('aria-label','Evidence photo \u2014 a picture clue for '+card.w);
+  host.appendChild(pol);
+}
+
+function paintHook(card,opts){
+  const ev=$('evidence');
+  ev.className='evidence';
+  ev.innerHTML='';
+  const p=document.createElement('p'); p.className='hook'; p.textContent=card.h; ev.appendChild(p);
+  if(card.sagen){const s=document.createElement('span');s.className='sagen';s.textContent='⚑ Sagen die Leute — people say, but nobody can prove it';ev.appendChild(s)}
+  if(opts&&opts.generated){const g=document.createElement('span');g.className='genwarn';g.textContent='Fresh card — not double-checked like the 95';ev.appendChild(g)}
+  if(!opts||!opts.generated){
+    const st=document.createElement('div'); st.className='stamp thump'; st.textContent='GELÖST'; st.setAttribute('aria-hidden','true');
+    $('file').appendChild(st);
+  }
+  $('live').textContent=card.w+'. '+card.m+'. '+card.h;
+}
+
+async function openEvidence(card,opts){
+  paintHook(card,opts);
+  opened=true;
+  $('file').classList.add('open');
+  const id=card.w;
+  if(!opts.generated && !state.solved.includes(id)){
+    state.solved.push(id); await save();
+    const fam=card.c?CLUSTERS[card.c]:null;
+    if(fam && fam.m.every(m=>state.solved.includes(m))){
+      offerFamily(card.c);
+    }
+  }
+  paintAkten();
+  paintMore();
+  if(!$('v-archiv').hidden) paintArchiv();
+}
+
+function offerFamily(cid){
+  const f=CLUSTERS[cid];
+  const r=$('ribbon');
+  r.hidden=false;
+  r.innerHTML='\ud83e\uddf5 '+f.t+' \u2014 closed. Tap to read it.';
+  r.setAttribute('aria-label',f.t+' is complete. Open it on the Akten board.');
+  $('file').classList.add('ribboned');
+  r.onclick=()=>{ expanded=cid; paintAkten(); switchTo('akten'); r.hidden=true; $('file').classList.remove('ribboned'); };
+  $('live').textContent='Case family closed: '+f.t+'. Tap the red ribbon to read it.';
+}
+function alertFamily(f){
+  const cid=Object.keys(CLUSTERS).find(k=>CLUSTERS[k]===f);
+  expanded = (expanded===cid) ? null : cid;
+  paintAkten();
+}
+
+let expanded=null;
+function paintAkten(){
+  const n=state.solved.length;
+  $('solvedN').textContent=n;
+  $('solvedLbl').textContent='of '+CARDS.length+' cases closed';
+  $('barfill').style.width=Math.round(n/CARDS.length*100)+'%';
+  $('counter').textContent='TAG '+String(dayIndex()+1).padStart(3,'0')+' · '+state.solved.length+'/'+CARDS.length;
+  const host=$('fams'); host.innerHTML='';
+  Object.keys(CLUSTERS).forEach(cid=>{
+    const f=CLUSTERS[cid];
+    const got=f.m.filter(m=>state.solved.includes(m)).length;
+    const done=got===f.m.length;
+    const isOpen=(expanded===cid)&&done;
+    const b=document.createElement('button');
+    b.className='fam'+(done?' done':'');
+    if(isOpen) b.style.flex='2.6 1 0';
+    b.innerHTML='<div><div class="famtitle">'+(done?'🧵 ':'')+f.t+(done?' — closed':'')+'</div><div class="famsub">'
+      +(isOpen ? '<span style="color:var(--paper);line-height:1.42;display:block;margin-top:5px">'+f.x+'</span>'
+               : got+' of '+f.m.length+' found'+(done?' · tap to read':''))+'</div></div>';
+    const pins=document.createElement('div'); pins.className='pins';
+    f.m.forEach(m=>{const d=document.createElement('span');d.className='pin'+(state.solved.includes(m)?' lit':'');pins.appendChild(d)});
+    b.appendChild(pins);
+    b.setAttribute('aria-label',f.t+', '+got+' of '+f.m.length+' found'+(done?', complete':''));
+    b.setAttribute('aria-expanded', isOpen?'true':'false');
+    b.onclick=()=>{ if(done){ alertFamily(f); $('live').textContent=expanded?(f.t+' opened. '+f.x):(f.t+' closed.'); }
+                    else { $('live').textContent=f.t+': '+got+' of '+f.m.length+' found so far.'; } };
+    host.appendChild(b);
+  });
+}
+
+function paintMore(){
+  const b=$('more');
+  const left=CARDS.length-state.solved.length;
+  const show = opened && left>0;
+  b.hidden=!show;
+  if(show) b.setAttribute('aria-label','Open another case now \u2014 '+left+' still unopened');
+}
+$('more').onclick=()=>{
+  const c=nextUnsolved();
+  if(!c){ $('more').hidden=true; return }
+  renderCard(c,{open:false});
+  $('live').textContent='New case: '+c.w+'. Look at the photo.';
+};
+
+/* ---------- archiv ---------- */
+const PER=30; let page=0;
+function paintArchiv(){
+  const host=$('grid'); host.innerHTML='';
+  const pages=Math.ceil(CARDS.length/PER);
+  page=Math.max(0,Math.min(page,pages-1));
+  const slice=CARDS.slice(page*PER,(page+1)*PER);
+  slice.forEach((c,k)=>{
+    const idx=page*PER+k;
+    const got=state.solved.includes(c.w);
+    const b=document.createElement('button');
+    b.className='cell'+(got?' open':'');
+    b.disabled=!got;
+    b.innerHTML=got
+      ? '<span class="cellg">'+((c.r&&c.r[0])||'\u2022')+'</span><span class="celln">'+String(idx+1).padStart(3,'0')+'</span>'
+      : '<span class="cellx">\u2b1a</span><span class="celln">'+String(idx+1).padStart(3,'0')+'</span>';
+    b.setAttribute('aria-label', got ? ('Case '+(idx+1)+', '+c.w+', open it again') : ('Case '+(idx+1)+', not found yet'));
+    if(got) b.onclick=()=>{ renderCard(c,{open:true}); switchTo('heute'); };
+    host.appendChild(b);
+  });
+  $('pnum').textContent=(page+1)+' / '+pages;
+  $('prev').disabled=page===0; $('next').disabled=page>=pages-1;
+  const n=state.solved.length;
+  $('archLead').textContent = n===0
+    ? 'Nothing filed yet. Open today\u2019s case and it lands here.'
+    : n+' of '+CARDS.length+' cases open. Tap any one to read it again. Greyed-out cases have not come up yet.';
+}
+$('prev').onclick=()=>{page--;paintArchiv()};
+$('next').onclick=()=>{page++;paintArchiv()};
+
+/* ---------- tabs ---------- */
+function switchTo(name){
+  if(name==='archiv') paintArchiv();
+  ['heute','akten','archiv','suchen'].forEach(k=>{
+    const on=k===name;
+    $('t-'+k).setAttribute('aria-selected',on?'true':'false');
+    const v=$('v-'+k); v.classList.toggle('on',on); v.hidden=!on;
+  });
+}
+['heute','akten','archiv','suchen'].forEach(k=>$('t-'+k).onclick=()=>switchTo(k));
+
+/* ---------- live detektiv ---------- */
+const SYS=`You write ONE evidence card about a single German or French word, for an 11-year-old English speaker who is a beginner in German.
+
+Return ONLY a JSON object, no markdown, no preamble:
+{"ok":true,"word":"...","meaning":"...","hook":"...","lang":"de","sagen":false}
+or
+{"ok":false,"why":"..."}
+
+RULES, in priority order:
+1. REFUSE (ok:false) any word that is vulgar, sexual, violent, an insult, slang for a body part or bodily function, drug-related, or otherwise not suitable for a child. Also always refuse "scheiße" and "geil". why = "Not one for the case files."
+2. If the word has NO genuinely interesting origin, hidden English cousin, literal compound meaning, false-friend trap or cultural fact, return ok:false with why = "No story here — that one's just a word." NEVER pad. NEVER invent an origin to fill space.
+3. NEVER mention modern youth slang or how young people use the word today.
+4. "hook" must be ONE fact, maximum 30 words, plain and funny. No lists. No second sentence of throat-clearing.
+5. "meaning" is the plain English meaning, under 8 words.
+6. "lang" is "de" or "fr".
+7. "sagen" is true only if the story is a legend or disputed rather than established.`;
+
+$('goBtn').onclick=async()=>{
+  const q=$('q').value.trim();
+  if(!q)return;
+  const btn=$('goBtn'); btn.disabled=true; btn.textContent='…';
+  $('note') && ($('note').textContent='Checking the files…');
+  $('result').innerHTML='<p class="note">Checking the files…</p>';
+  try{
+    if(state.gen[q.toLowerCase()]){ useGen(JSON.parse(state.gen[q.toLowerCase()])); return }
+    const r=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,
+        system:SYS,messages:[{role:"user",content:q}]})});
+    const d=await r.json();
+    const txt=(d.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('').replace(/```json|```/g,'').trim();
+    const o=JSON.parse(txt);
+    if(o.ok){ state.gen[q.toLowerCase()]=JSON.stringify(o); await save(); useGen(o); }
+    else{ $('result').innerHTML='<p class="note">'+(o.why||'Nothing on that one.')+'</p>' }
+  }catch(e){
+    $('result').innerHTML='<p class="note">Couldn\u2019t reach the archive. Try again in a moment.</p>';
+  }finally{ btn.disabled=false; btn.textContent='Suchen' }
+};
+$('copy').onclick=async()=>{
+  const t=makeCode();
+  try{ await navigator.clipboard.writeText(t); $('copy').textContent='Kopiert \u2713'; }
+  catch(e){ $('copy').textContent='Copy it by hand'; }
+  setTimeout(()=>{$('copy').textContent='Kopieren'},1600);
+};
+$('loadBtn').onclick=async()=>{
+  const got=readCode($('restore').value);
+  if(!got){ $('sichLead').textContent="That code didn't scan. Check it and try again."; return }
+  state.solved=got; $('restore').value='';
+  await save(); paintAkten(); paintMore(); paintArchiv();
+  $('sichLead').textContent=got.length+' cases restored.';
+  $('live').textContent=got.length+' cases restored.';
+};
+$('q').addEventListener('keydown',e=>{if(e.key==='Enter')$('goBtn').click()});
+
+function useGen(o){
+  $('result').innerHTML='<p class="note">Card ready — it\u2019s on the Heute desk.</p>';
+  renderCard({w:o.word,m:o.meaning,h:o.hook,l:o.lang==='fr'?'fr':'de',sagen:!!o.sagen,c:null},{open:true,generated:true});
+  switchTo('heute');
+}
+
+/* ---------- go ---------- */
+(async function(){
+  await load();
+  await probe();
+  paintCode();
+  paintAkten();
+  const c=nextUnsolved()||dueCard();
+  renderCard(c,{open:state.solved.includes(c.w)});
+  if('speechSynthesis' in window){ window.speechSynthesis.getVoices(); setTimeout(refreshVoices,350) }
+})();
+</script>
+</body>
+</html>
